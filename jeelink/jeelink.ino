@@ -52,6 +52,7 @@ void setup () {
   rf12_initialize(MYNODE, freq,group);
   last_rf = millis()-40000;                                       // setting lastRF back 40s is useful as it forces the ethernet code to run straight away
    
+pinMode(13,OUTPUT);
 }
 
 //**********************************************************************************************************************
@@ -67,7 +68,8 @@ void loop () {
       {
         int node_id = (rf12_hdr & 0x1F);
         
-        if (node_id == 10)                                               // EMONTX
+	digitalWrite(13,HIGH);						//Flash indicator LED
+        if (node_id == 10)                                               // EMONTX default ID
         {
           emontx = *(PayloadTX*) rf12_data;                              // get emontx data
           last_rf = millis();                                            // reset lastRF timer
