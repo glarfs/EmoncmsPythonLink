@@ -52,7 +52,7 @@ void setup () {
   rf12_initialize(MYNODE, freq,group);
   last_rf = millis()-40000;                                       // setting lastRF back 40s is useful as it forces the ethernet code to run straight away
    
-pinMode(13,OUTPUT);
+pinMode(9,OUTPUT);						//JeeLink blue indicator LED
 }
 
 //**********************************************************************************************************************
@@ -68,7 +68,7 @@ void loop () {
       {
         int node_id = (rf12_hdr & 0x1F);
         
-	digitalWrite(13,HIGH);						//Flash indicator LED
+	digitalWrite(9,LOW);						//Turn on indicator LED
         if (node_id == 10)                                               // EMONTX default ID
         {
           emontx = *(PayloadTX*) rf12_data;                              // get emontx data
@@ -93,7 +93,8 @@ void loop () {
           emonglcd_rx = 1;        
         }
       }
-    }
+	digitalWrite(9,HIGH);						//Turn off indicator LED    
+}
 
   //-----------------------------------------------------------------------------------------------------------------
   // 2) If no data is recieved from rf12 module the server is updated every 30s with RFfail = 1 indicator for debugging
