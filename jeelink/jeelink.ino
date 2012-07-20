@@ -3,7 +3,7 @@
 
 #define MYNODE 15            
 #define freq RF12_868MHZ     // frequency
-#define group 210            // network group 
+#define group 64            // network group 
 
 //---------------------------------------------------
 // Data structures for transfering data between units
@@ -48,11 +48,10 @@ int emonglcd_rx = 0;
 void setup () {
     
   Serial.begin(9600);
-
+  pinMode(9,OUTPUT);
   rf12_initialize(MYNODE, freq,group);
   last_rf = millis()-40000;                                       // setting lastRF back 40s is useful as it forces the ethernet code to run straight away
    
-pinMode(9,OUTPUT);						//JeeLink blue indicator LED
 }
 
 //**********************************************************************************************************************
@@ -67,34 +66,25 @@ void loop () {
       if (rf12_crc == 0 && (rf12_hdr & RF12_HDR_CTL) == 0)
       {
         int node_id = (rf12_hdr & 0x1F);
-        
-	digitalWrite(9,LOW);						//Turn on indicator LED
-        if (node_id == 10)                                               // EMONTX default ID
+        byte n = rf12_len;
+         
+        str.reset();
+        str.print("&node=");  str.print(node_id);
+        str.print("&csv=");
+        for (byte i=0; i<n; i+=2)
         {
-          emontx = *(PayloadTX*) rf12_data;                              // get emontx data
-          last_rf = millis();                                            // reset lastRF timer
-          
-          delay(50);                                                     // make sure serial printing finished
-                               
-          // JSON creation: JSON sent are of the format: {key1:value1,key2:value2} and so on
-          
-          str.reset();                                                   // RF recieved so no failure
-          str.print("{power1:");        str.print(emontx.power1);          // Add power reading
-          str.print(",power2:");        str.print(emontx.power2);          // Add power reading
-          str.print(",power3:");        str.print(emontx.power3);          // Add power reading 
-          str.print(",voltage:");      str.print(emontx.voltage);        // Add emontx battery voltage reading
-    
-          data_ready = 1;                                                // data is ready
+          int num = ((unsigned char)rf12_data[i+1] << 8 | (unsigned char)rf12_data[i]);
+          if (i) str.print(",");
+          str.print(num);
         }
+
+        str.print("\0");  //  End of json string
+        data_ready = 1; 
+        last_rf = millis(); 
         
-        if (node_id == 20)                                               // EMONGLCD 
-        {
-          emonglcd = *(PayloadGLCD*) rf12_data;                          // get emonglcd data
-          emonglcd_rx = 1;        
-        }
-      }
-	digitalWrite(9,HIGH);						//Turn off indicator LED    
-}
+  
+  digitalWrite(9,HIGH);  
+  }
 
   //-----------------------------------------------------------------------------------------------------------------
   // 2) If no data is recieved from rf12 module the server is updated every 30s with RFfail = 1 indicator for debugging
@@ -108,15 +98,6 @@ void loop () {
   }
   
   if (data_ready) {
-    
-    // include temperature data from emonglcd if it has been recieved
-    if (emonglcd_rx) {
-      str.print(",temperature:");  
-      str.print(emonglcd.temperature/100.0);
-      emonglcd_rx = 0;
-    }
-    
-    str.print("}\0");  //  End of json string
    
     Serial.println(str.buf);
     
@@ -124,3 +105,5 @@ void loop () {
   }
   
 }
+
+  }
